@@ -3,7 +3,8 @@ name: Deploy Outbox Labs
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -11,26 +12,43 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install and build
+      - name: Install dependencies and build frontend
         working-directory: outbox-labs-scheduled-email/frontend
         run: |
           npm install
           npm run build -- --base=/Outbox_Labs_Scheduled_Email_Project/
 
-      - uses: actions/configure-pages@v5
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
         with:
           path: outbox-labs-scheduled-email/frontend/dist
 
-      - uses: actions/deploy-pages@v4
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@v4
